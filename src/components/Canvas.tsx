@@ -122,34 +122,40 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     const canvas = fabricCanvasRef.current;
     const url = draggedAsset.src;
     
-    FabricImage.fromURL(url, (img) => {
-      // Scale down large images
-      if (img.width && img.height) {
-        const maxSize = 100;
-        if (img.width > maxSize || img.height > maxSize) {
-          const scale = Math.min(maxSize / img.width, maxSize / img.height);
-          img.scale(scale);
+    // Fixed: Updated FabricImage.fromURL usage to match Fabric.js v6 API
+    FabricImage.fromURL(url, {
+      // This is the callback that is executed once the image is loaded
+      onComplete: (img) => {
+        // Scale down large images
+        if (img.width && img.height) {
+          const maxSize = 100;
+          if (img.width > maxSize || img.height > maxSize) {
+            const scale = Math.min(maxSize / img.width, maxSize / img.height);
+            img.scale(scale);
+          }
         }
+        
+        // Position the image in the center of the canvas
+        img.set({
+          left: canvas.width! / 2,
+          top: canvas.height! / 2,
+          cornerSize: 10,
+          hasControls: true,
+          hasBorders: true,
+          name: draggedAsset.name
+        });
+        
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        
+        toast.success(`Added ${draggedAsset.name} to canvas`);
+      },
+      // This is called if there's an error loading the image
+      onError: () => {
+        console.error('Error loading image:', draggedAsset.src);
+        toast.error(`Failed to load ${draggedAsset.name}`);
       }
-      
-      // Position the image in the center of the canvas
-      img.set({
-        left: canvas.width! / 2,
-        top: canvas.height! / 2,
-        cornerSize: 10,
-        hasControls: true,
-        hasBorders: true,
-        name: draggedAsset.name
-      });
-      
-      canvas.add(img);
-      canvas.setActiveObject(img);
-      canvas.renderAll();
-      
-      toast.success(`Added ${draggedAsset.name} to canvas`);
-    }, (error) => {
-      console.error('Error loading image:', error);
-      toast.error(`Failed to load ${draggedAsset.name}`);
     });
     
   }, [draggedAsset]);
