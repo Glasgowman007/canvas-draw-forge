@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Canvas as FabricCanvas, Line } from 'fabric';
+import { Canvas as FabricCanvas, Line, Image as FabricImage } from 'fabric';
 import { Asset, CanvasObject, LineColor, LinePoint, Tool } from '@/types';
 import { saveCanvasAsJpeg } from '@/utils/canvasUtils';
 import { toast } from 'sonner';
@@ -121,34 +121,41 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     
     const canvas = fabricCanvasRef.current;
     
-    // Using the fabric Line class that we imported
-    // @ts-ignore - Using dynamic loading for fabric.Image
-    fabric.Image.fromURL(draggedAsset.src, (img: any) => {
-      // Scale down large images
-      if (img.width && img.height) {
-        const maxSize = 100;
-        if (img.width > maxSize || img.height > maxSize) {
-          const scale = Math.min(maxSize / img.width, maxSize / img.height);
-          img.scale(scale);
-        }
-      }
-      
-      // Position the image in the center of the canvas
-      img.set({
+    // Use imported FabricImage.fromURL instead of fabric.Image.fromURL
+    const url = draggedAsset.src;
+    
+    // Create image element first
+    const imgElement = document.createElement('img');
+    imgElement.src = url;
+    imgElement.onload = () => {
+      // Create Fabric Image instance once image is loaded
+      const fabricImg = new FabricImage(imgElement, {
         left: canvas.width! / 2,
         top: canvas.height! / 2,
-        cornerSize: 10,
         hasControls: true,
         hasBorders: true,
         name: draggedAsset.name
       });
       
-      canvas.add(img);
-      canvas.setActiveObject(img);
+      // Scale down large images
+      if (fabricImg.width && fabricImg.height) {
+        const maxSize = 100;
+        if (fabricImg.width > maxSize || fabricImg.height > maxSize) {
+          const scale = Math.min(maxSize / fabricImg.width, maxSize / fabricImg.height);
+          fabricImg.scale(scale);
+        }
+      }
+      
+      canvas.add(fabricImg);
+      canvas.setActiveObject(fabricImg);
       canvas.renderAll();
       
       toast.success(`Added ${draggedAsset.name} to canvas`);
-    });
+    };
+    
+    imgElement.onerror = () => {
+      toast.error(`Failed to load ${draggedAsset.name}`);
+    };
   }, [draggedAsset]);
 
   // Mouse event handlers for line drawing
