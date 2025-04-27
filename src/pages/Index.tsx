@@ -2,14 +2,14 @@
 import React, { useRef, useState } from 'react';
 import { Toolbar } from '@/components/Toolbar';
 import { Sidebar } from '@/components/Sidebar';
-import { Canvas } from '@/components/Canvas';
+import { Canvas, CanvasRef } from '@/components/Canvas';
 import { Asset, LineColor, Tool } from '@/types';
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState<Tool>('select');
   const [activeColor, setActiveColor] = useState<LineColor>('black');
   const [draggedAsset, setDraggedAsset] = useState<Asset | null>(null);
-  const canvasRef = useRef<any>(null);
+  const canvasRef = useRef<CanvasRef>(null);
 
   const handleToolChange = (tool: Tool) => {
     setActiveTool(tool);

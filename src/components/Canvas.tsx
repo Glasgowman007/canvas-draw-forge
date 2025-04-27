@@ -1,10 +1,17 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Canvas as FabricCanvas, fabric } from 'fabric';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { Canvas as FabricCanvas } from 'fabric';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Asset, CanvasObject, LineColor, LinePoint, Tool } from '@/types';
 import { saveCanvasAsJpeg } from '@/utils/canvasUtils';
 import { toast } from 'sonner';
+
+export interface CanvasRef {
+  saveCanvas: () => void;
+  clearCanvas: () => void;
+  deleteSelectedObject: () => void;
+  hasSelectedObject: boolean;
+}
 
 interface CanvasProps {
   activeTool: Tool;
@@ -12,13 +19,13 @@ interface CanvasProps {
   draggedAsset: Asset | null;
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ 
+export const Canvas = forwardRef<CanvasRef, CanvasProps>(({ 
   activeTool, 
   activeColor,
   draggedAsset 
-}) => {
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const fabricCanvasRef = useRef<any>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<LinePoint | null>(null);
@@ -47,13 +54,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     fabricCanvasRef.current = fabricCanvas;
 
     // Handle object selection
-    fabricCanvas.on('selection:created', (e) => {
+    fabricCanvas.on('selection:created', (e: any) => {
       if (e.selected && e.selected.length > 0) {
         setSelectedObject(e.selected[0]);
       }
     });
 
-    fabricCanvas.on('selection:updated', (e) => {
+    fabricCanvas.on('selection:updated', (e: any) => {
       if (e.selected && e.selected.length > 0) {
         setSelectedObject(e.selected[0]);
       }
@@ -79,7 +86,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         canvas.selection = true;
         canvas.defaultCursor = 'default';
         canvas.hoverCursor = 'move';
-        canvas.getObjects().forEach(obj => {
+        canvas.getObjects().forEach((obj: any) => {
           obj.selectable = true;
           obj.evented = true;
         });
@@ -87,7 +94,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       case 'line':
         canvas.selection = false;
         canvas.defaultCursor = 'crosshair';
-        canvas.getObjects().forEach(obj => {
+        canvas.getObjects().forEach((obj: any) => {
           obj.selectable = false;
           obj.evented = false;
         });
@@ -97,7 +104,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       case 'zoom-out':
         canvas.selection = false;
         canvas.defaultCursor = 'default';
-        canvas.getObjects().forEach(obj => {
+        canvas.getObjects().forEach((obj: any) => {
           obj.selectable = false;
           obj.evented = false;
         });
@@ -115,7 +122,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     
     const canvas = fabricCanvasRef.current;
     
-    fabric.Image.fromURL(draggedAsset.src, (img) => {
+    // Use the fabric namespace from the fabricCanvas instance
+    window.fabric.Image.fromURL(draggedAsset.src, (img: any) => {
       // Scale down large images
       if (img.width && img.height) {
         const maxSize = 100;
@@ -144,7 +152,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   }, [draggedAsset]);
 
   // Mouse event handlers for line drawing
-  const handleMouseDown = (event: fabric.IEvent) => {
+  const handleMouseDown = (event: any) => {
     if (activeTool !== 'line' || isDrawing || !fabricCanvasRef.current) return;
     
     const canvas = fabricCanvasRef.current;
@@ -154,7 +162,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setStartPoint({ x: pointer.x, y: pointer.y });
   };
 
-  const handleMouseMove = (event: fabric.IEvent) => {
+  const handleMouseMove = (event: any) => {
     if (!isDrawing || !startPoint || !fabricCanvasRef.current) return;
     
     const canvas = fabricCanvasRef.current;
@@ -162,13 +170,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     
     // If there's an existing temporary line, remove it
     const objects = canvas.getObjects();
-    const tempLine = objects.find(obj => obj.data?.isTemp);
+    const tempLine = objects.find((obj: any) => obj.data?.isTemp);
     if (tempLine) {
       canvas.remove(tempLine);
     }
     
     // Draw a new temporary line
-    const line = new fabric.Line(
+    const line = new window.fabric.Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
@@ -183,7 +191,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     canvas.renderAll();
   };
 
-  const handleMouseUp = (event: fabric.IEvent) => {
+  const handleMouseUp = (event: any) => {
     if (!isDrawing || !startPoint || !fabricCanvasRef.current) return;
     
     const canvas = fabricCanvasRef.current;
@@ -191,13 +199,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     
     // Remove any temporary line
     const objects = canvas.getObjects();
-    const tempLine = objects.find(obj => obj.data?.isTemp);
+    const tempLine = objects.find((obj: any) => obj.data?.isTemp);
     if (tempLine) {
       canvas.remove(tempLine);
     }
     
     // Create the final line
-    const line = new fabric.Line(
+    const line = new window.fabric.Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
@@ -266,15 +274,12 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
   
   // Export public methods
-  React.useImperativeHandle(
-    React.forwardRef((_, ref) => ref),
-    () => ({
-      saveCanvas,
-      clearCanvas,
-      deleteSelectedObject,
-      hasSelectedObject: !!selectedObject
-    })
-  );
+  useImperativeHandle(ref, () => ({
+    saveCanvas,
+    clearCanvas,
+    deleteSelectedObject,
+    hasSelectedObject: !!selectedObject
+  }));
 
   return (
     <div 
@@ -301,4 +306,6 @@ export const Canvas: React.FC<CanvasProps> = ({
       </TransformWrapper>
     </div>
   );
-};
+});
+
+Canvas.displayName = 'Canvas';
