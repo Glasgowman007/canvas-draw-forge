@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Canvas as FabricCanvas } from 'fabric';
+import { Canvas as FabricCanvas, Line, Image, Object as FabricObject } from 'fabric';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Asset, CanvasObject, LineColor, LinePoint, Tool } from '@/types';
 import { saveCanvasAsJpeg } from '@/utils/canvasUtils';
@@ -25,7 +25,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   draggedAsset 
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<any>(null);
+  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<LinePoint | null>(null);
@@ -122,8 +122,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     
     const canvas = fabricCanvasRef.current;
     
-    // Use the fabric namespace from the fabricCanvas instance
-    window.fabric.Image.fromURL(draggedAsset.src, (img: any) => {
+    Image.fromURL(draggedAsset.src, (img: any) => {
       // Scale down large images
       if (img.width && img.height) {
         const maxSize = 100;
@@ -176,7 +175,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     }
     
     // Draw a new temporary line
-    const line = new window.fabric.Line(
+    const line = new Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
@@ -205,7 +204,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     }
     
     // Create the final line
-    const line = new window.fabric.Line(
+    const line = new Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
