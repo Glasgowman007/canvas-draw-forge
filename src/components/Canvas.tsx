@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { fabric } from 'fabric';
+import { Canvas as FabricCanvas, Object as FabricObject, Image as FabricImage, Line as FabricLine } from 'fabric';
 import { Asset, CanvasObject, LineColor, LinePoint, Tool } from '@/types';
 import { saveCanvasAsJpeg } from '@/utils/canvasUtils';
 import { toast } from 'sonner';
@@ -24,7 +24,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   draggedAsset 
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<LinePoint | null>(null);
@@ -41,7 +41,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+    const fabricCanvas = new FabricCanvas(canvasRef.current, {
       width: 1200,
       height: 800,
       backgroundColor: '#ffffff',
@@ -122,7 +122,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     const canvas = fabricCanvasRef.current;
     const url = draggedAsset.src;
     
-    fabric.Image.fromURL(url, (img) => {
+    FabricImage.fromURL(url, (img) => {
       // Scale down large images
       if (img.width && img.height) {
         const maxSize = 100;
@@ -179,7 +179,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     }
     
     // Create a new line
-    const line = new fabric.Line(
+    const line = new FabricLine(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
@@ -208,7 +208,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     }
     
     // Create the final line
-    const line = new fabric.Line(
+    const line = new FabricLine(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],

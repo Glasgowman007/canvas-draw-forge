@@ -1,5 +1,5 @@
 
-import { fabric } from 'fabric';
+import { Canvas as FabricCanvas, Object as FabricObject } from 'fabric';
 
 export type Tool = 
   | 'select'
@@ -22,4 +22,4 @@ export interface LinePoint {
   y: number;
 }
 
-export type CanvasObject = fabric.Object;
+export type CanvasObject = FabricObject;

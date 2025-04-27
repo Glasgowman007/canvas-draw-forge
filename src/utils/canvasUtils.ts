@@ -1,10 +1,10 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { fabric } from 'fabric';
+import { Canvas as FabricCanvas } from 'fabric';
 import { Asset } from '../types';
 
 // Function to convert canvas to JPEG data URL
-export const canvasToJpeg = (canvas: fabric.Canvas): string => {
+export const canvasToJpeg = (canvas: FabricCanvas): string => {
   return canvas.toDataURL({ 
     format: 'jpeg',
     quality: 0.8,
@@ -13,7 +13,7 @@ export const canvasToJpeg = (canvas: fabric.Canvas): string => {
 };
 
 // Function to save canvas as JPEG
-export const saveCanvasAsJpeg = (canvas: fabric.Canvas, fileName: string = 'canvas-drawing'): void => {
+export const saveCanvasAsJpeg = (canvas: FabricCanvas, fileName: string = 'canvas-drawing'): void => {
   const dataUrl = canvasToJpeg(canvas);
   
   // Create a temporary anchor element
