@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Canvas as FabricCanvas, Line, Image as FabricImage } from 'fabric';
+import { fabric } from 'fabric';
 import { Asset, CanvasObject, LineColor, LinePoint, Tool } from '@/types';
 import { saveCanvasAsJpeg } from '@/utils/canvasUtils';
 import { toast } from 'sonner';
@@ -24,7 +24,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   draggedAsset 
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
+  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<LinePoint | null>(null);
@@ -41,7 +41,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const fabricCanvas = new FabricCanvas(canvasRef.current, {
+    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
       width: 1200,
       height: 800,
       backgroundColor: '#ffffff',
@@ -53,13 +53,13 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     fabricCanvasRef.current = fabricCanvas;
 
     // Handle object selection
-    fabricCanvas.on('selection:created', (e: any) => {
+    fabricCanvas.on('selection:created', (e) => {
       if (e.selected && e.selected.length > 0) {
         setSelectedObject(e.selected[0]);
       }
     });
 
-    fabricCanvas.on('selection:updated', (e: any) => {
+    fabricCanvas.on('selection:updated', (e) => {
       if (e.selected && e.selected.length > 0) {
         setSelectedObject(e.selected[0]);
       }
@@ -85,7 +85,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         canvas.selection = true;
         canvas.defaultCursor = 'default';
         canvas.hoverCursor = 'move';
-        canvas.getObjects().forEach((obj: any) => {
+        canvas.getObjects().forEach((obj) => {
           obj.selectable = true;
           obj.evented = true;
         });
@@ -93,7 +93,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       case 'line':
         canvas.selection = false;
         canvas.defaultCursor = 'crosshair';
-        canvas.getObjects().forEach((obj: any) => {
+        canvas.getObjects().forEach((obj) => {
           obj.selectable = false;
           obj.evented = false;
         });
@@ -103,7 +103,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       case 'zoom-out':
         canvas.selection = false;
         canvas.defaultCursor = 'default';
-        canvas.getObjects().forEach((obj: any) => {
+        canvas.getObjects().forEach((obj) => {
           obj.selectable = false;
           obj.evented = false;
         });
@@ -120,42 +120,38 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     if (!fabricCanvasRef.current || !draggedAsset) return;
     
     const canvas = fabricCanvasRef.current;
-    
-    // Use imported FabricImage.fromURL instead of fabric.Image.fromURL
     const url = draggedAsset.src;
     
-    // Create image element first
-    const imgElement = document.createElement('img');
-    imgElement.src = url;
-    imgElement.onload = () => {
-      // Create Fabric Image instance once image is loaded
-      const fabricImg = new FabricImage(imgElement, {
+    fabric.Image.fromURL(url, (img) => {
+      // Scale down large images
+      if (img.width && img.height) {
+        const maxSize = 100;
+        if (img.width > maxSize || img.height > maxSize) {
+          const scale = Math.min(maxSize / img.width, maxSize / img.height);
+          img.scale(scale);
+        }
+      }
+      
+      // Position the image in the center of the canvas
+      img.set({
         left: canvas.width! / 2,
         top: canvas.height! / 2,
+        cornerSize: 10,
         hasControls: true,
         hasBorders: true,
         name: draggedAsset.name
       });
       
-      // Scale down large images
-      if (fabricImg.width && fabricImg.height) {
-        const maxSize = 100;
-        if (fabricImg.width > maxSize || fabricImg.height > maxSize) {
-          const scale = Math.min(maxSize / fabricImg.width, maxSize / fabricImg.height);
-          fabricImg.scale(scale);
-        }
-      }
-      
-      canvas.add(fabricImg);
-      canvas.setActiveObject(fabricImg);
+      canvas.add(img);
+      canvas.setActiveObject(img);
       canvas.renderAll();
       
       toast.success(`Added ${draggedAsset.name} to canvas`);
-    };
-    
-    imgElement.onerror = () => {
+    }, (error) => {
+      console.error('Error loading image:', error);
       toast.error(`Failed to load ${draggedAsset.name}`);
-    };
+    });
+    
   }, [draggedAsset]);
 
   // Mouse event handlers for line drawing
@@ -182,8 +178,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       canvas.remove(tempLine);
     }
     
-    // Create a new Line instance directly
-    const line = new Line(
+    // Create a new line
+    const line = new fabric.Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
@@ -212,7 +208,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     }
     
     // Create the final line
-    const line = new Line(
+    const line = new fabric.Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
@@ -296,7 +292,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       onDragOver={handleDragOver}
       ref={wrapperRef}
     >
-      {/* Remove TransformWrapper and TransformComponent for now to fix React hook errors */}
       <div className="w-full h-full flex items-center justify-center">
         <canvas ref={canvasRef} />
       </div>
