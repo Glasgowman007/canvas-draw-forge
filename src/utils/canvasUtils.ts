@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { Canvas } from 'fabric';
 import { Asset } from '../types';
@@ -6,8 +5,9 @@ import { Asset } from '../types';
 // Function to convert canvas to JPEG data URL
 export const canvasToJpeg = (canvas: Canvas): string => {
   return canvas.toDataURL({ 
-    format: 'jpeg', 
-    quality: 0.8 
+    format: 'jpeg',
+    quality: 0.8,
+    multiplier: 1 // Add required multiplier property
   });
 };
 
@@ -62,26 +62,50 @@ export const createAssetFromFile = async (file: File): Promise<Asset> => {
 export const defaultAssets: Asset[] = [
   { 
     id: '1', 
-    name: 'Two Way Switch', 
-    src: '/lovable-uploads/0a6637b3-c9d8-469d-8135-923e8c199d2f.png',
+    name: 'Single Light Switch', 
+    src: '/lovable-uploads/ee89338f-96ec-4daf-bbda-e8a8124849a9.png',
     type: 'image' 
   },
   { 
     id: '2', 
-    name: 'Socket Outlet', 
-    src: '/placeholder.svg', 
+    name: 'Double Light Switch', 
+    src: '/lovable-uploads/f9a9e09f-e678-4171-b4e3-6cf9cd8da99b.png',
     type: 'image' 
   },
   { 
     id: '3', 
-    name: 'Light', 
-    src: '/placeholder.svg', 
+    name: 'Socket Outlet', 
+    src: '/lovable-uploads/fde4ca78-b0f9-4198-a2e3-efe99caf4cb8.png',
     type: 'image' 
   },
   { 
     id: '4', 
-    name: 'Consumer Unit', 
-    src: '/placeholder.svg', 
+    name: 'Light Switch Box', 
+    src: '/lovable-uploads/d7d2d94b-3d15-4a31-84ae-40a31a552294.png',
     type: 'image' 
+  },
+  { 
+    id: '5', 
+    name: 'Socket Box', 
+    src: '/lovable-uploads/bff0fc59-be40-43d4-9ae6-0443e7a396da.png',
+    type: 'image' 
+  },
+  { 
+    id: '6', 
+    name: 'Two Way Switch Box', 
+    src: '/lovable-uploads/cd1c5a33-e3f6-41b5-946d-27a13c1e3a38.png',
+    type: 'image' 
+  },
+  {
+    id: '7',
+    name: 'Consumer Unit',
+    src: '/lovable-uploads/e0264135-eec0-47ef-9d36-482f0edac1f0.png',
+    type: 'image'
+  },
+  {
+    id: '8',
+    name: 'Two Way Connection',
+    src: '/lovable-uploads/579549a5-8186-417c-9783-cfdf497ccbf9.png',
+    type: 'image'
   }
 ];
