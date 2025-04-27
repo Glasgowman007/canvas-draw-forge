@@ -1,17 +1,13 @@
 
-import { useState, useCallback } from 'react';
-import { Canvas as FabricCanvas, Line as FabricLine } from 'fabric';
-import { LinePoint, LineColor } from '@/types';
-
-const colorMap: Record<LineColor, string> = {
-  'brown': 'var(--drawing-brown)',
-  'black': 'var(--drawing-black)',
-  'green': 'var(--drawing-green)',
-};
+import { useCallback } from 'react';
+import { Canvas as FabricCanvas } from 'fabric';
+import { LineColor } from '@/types';
+import { useDrawingState } from './useDrawingState';
+import { useLineCreation } from './useLineCreation';
 
 export const useCanvasDrawing = (fabricCanvas: FabricCanvas | null, activeColor: LineColor) => {
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [startPoint, setStartPoint] = useState<LinePoint | null>(null);
+  const { isDrawing, setIsDrawing, startPoint, setStartPoint } = useDrawingState();
+  const { createTemporaryLine, createFinalLine } = useLineCreation(fabricCanvas, activeColor);
 
   const handleMouseDown = useCallback((event: any) => {
     if (!fabricCanvas) return;
@@ -19,62 +15,24 @@ export const useCanvasDrawing = (fabricCanvas: FabricCanvas | null, activeColor:
     const pointer = fabricCanvas.getPointer(event.e);
     setIsDrawing(true);
     setStartPoint({ x: pointer.x, y: pointer.y });
-  }, [fabricCanvas]);
+  }, [fabricCanvas, setIsDrawing, setStartPoint]);
 
   const handleMouseMove = useCallback((event: any) => {
     if (!isDrawing || !startPoint || !fabricCanvas) return;
     
     const pointer = fabricCanvas.getPointer(event.e);
-    
-    const objects = fabricCanvas.getObjects();
-    const tempLine = objects.find((obj: any) => obj.data?.isTemp);
-    if (tempLine) {
-      fabricCanvas.remove(tempLine);
-    }
-    
-    const line = new FabricLine(
-      [startPoint.x, startPoint.y, pointer.x, pointer.y],
-      {
-        stroke: colorMap[activeColor],
-        strokeWidth: 2,
-        selectable: false,
-        evented: false,
-        data: { isTemp: true }
-      }
-    );
-    
-    fabricCanvas.add(line);
-    fabricCanvas.renderAll();
-  }, [isDrawing, startPoint, fabricCanvas, activeColor]);
+    createTemporaryLine(startPoint, { x: pointer.x, y: pointer.y });
+  }, [isDrawing, startPoint, fabricCanvas, createTemporaryLine]);
 
   const handleMouseUp = useCallback((event: any) => {
     if (!isDrawing || !startPoint || !fabricCanvas) return;
     
     const pointer = fabricCanvas.getPointer(event.e);
-    
-    const objects = fabricCanvas.getObjects();
-    const tempLine = objects.find((obj: any) => obj.data?.isTemp);
-    if (tempLine) {
-      fabricCanvas.remove(tempLine);
-    }
-    
-    const line = new FabricLine(
-      [startPoint.x, startPoint.y, pointer.x, pointer.y],
-      {
-        stroke: colorMap[activeColor],
-        strokeWidth: 2,
-        selectable: true,
-        hasControls: true,
-        hasBorders: true
-      }
-    );
-    
-    fabricCanvas.add(line);
-    fabricCanvas.renderAll();
+    createFinalLine(startPoint, { x: pointer.x, y: pointer.y });
     
     setIsDrawing(false);
     setStartPoint(null);
-  }, [isDrawing, startPoint, fabricCanvas, activeColor]);
+  }, [isDrawing, startPoint, fabricCanvas, createFinalLine, setIsDrawing, setStartPoint]);
 
   return {
     handleMouseDown,
