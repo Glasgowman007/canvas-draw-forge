@@ -1,8 +1,12 @@
-import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Canvas as FabricCanvas, Object as FabricObject, Image as FabricImage, Line as FabricLine } from 'fabric';
-import { Asset, CanvasObject, LineColor, LinePoint, Tool } from '@/types';
+
+import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { Asset, Tool, LineColor } from '@/types';
 import { saveCanvasAsJpeg } from '@/utils/canvasUtils';
 import { toast } from 'sonner';
+import { useCanvasInit } from '@/hooks/useCanvasInit';
+import { useCanvasTools } from '@/hooks/useCanvasTools';
+import { useCanvasDrawing } from '@/hooks/useCanvasDrawing';
+import { useCanvasAssets } from '@/hooks/useCanvasAssets';
 
 export interface CanvasRef {
   saveCanvas: () => void;
@@ -22,198 +26,20 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   activeColor,
   draggedAsset 
 }, ref) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [startPoint, setStartPoint] = useState<LinePoint | null>(null);
-  const [selectedObject, setSelectedObject] = useState<CanvasObject | null>(null);
-  
-  const colorMap: Record<LineColor, string> = {
-    'brown': 'var(--drawing-brown)',
-    'black': 'var(--drawing-black)',
-    'green': 'var(--drawing-green)',
-  };
+  const {
+    canvasRef,
+    fabricCanvasRef,
+    selectedObject,
+  } = useCanvasInit();
 
-  useEffect(() => {
-    if (!canvasRef.current) return;
+  useCanvasTools(fabricCanvasRef.current, activeTool);
+  useCanvasAssets(fabricCanvasRef.current, draggedAsset);
 
-    const fabricCanvas = new FabricCanvas(canvasRef.current, {
-      width: 1200,
-      height: 800,
-      backgroundColor: '#ffffff',
-      preserveObjectStacking: true,
-    });
-
-    fabricCanvas.selection = true;
-
-    fabricCanvasRef.current = fabricCanvas;
-
-    fabricCanvas.on('selection:created', (e) => {
-      if (e.selected && e.selected.length > 0) {
-        setSelectedObject(e.selected[0]);
-      }
-    });
-
-    fabricCanvas.on('selection:updated', (e) => {
-      if (e.selected && e.selected.length > 0) {
-        setSelectedObject(e.selected[0]);
-      }
-    });
-
-    fabricCanvas.on('selection:cleared', () => {
-      setSelectedObject(null);
-    });
-
-    return () => {
-      fabricCanvas.dispose();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!fabricCanvasRef.current) return;
-    
-    const canvas = fabricCanvasRef.current;
-    
-    switch (activeTool) {
-      case 'select':
-        canvas.selection = true;
-        canvas.defaultCursor = 'default';
-        canvas.hoverCursor = 'move';
-        canvas.getObjects().forEach((obj) => {
-          obj.selectable = true;
-          obj.evented = true;
-        });
-        break;
-      case 'line':
-        canvas.selection = false;
-        canvas.defaultCursor = 'crosshair';
-        canvas.getObjects().forEach((obj) => {
-          obj.selectable = false;
-          obj.evented = false;
-        });
-        break;
-      case 'move':
-      case 'zoom-in':
-      case 'zoom-out':
-        canvas.selection = false;
-        canvas.defaultCursor = 'default';
-        canvas.getObjects().forEach((obj) => {
-          obj.selectable = false;
-          obj.evented = false;
-        });
-        break;
-      default:
-        break;
-    }
-    
-    canvas.renderAll();
-  }, [activeTool]);
-
-  useEffect(() => {
-    if (!fabricCanvasRef.current || !draggedAsset) return;
-    
-    const canvas = fabricCanvasRef.current;
-    const url = draggedAsset.src;
-    
-    FabricImage.fromURL(url)
-      .then(img => {
-        if (img.width && img.height) {
-          const maxSize = 100;
-          if (img.width > maxSize || img.height > maxSize) {
-            const scale = Math.min(maxSize / img.width, maxSize / img.height);
-            img.scale(scale);
-          }
-        }
-        
-        img.set({
-          left: canvas.width! / 2,
-          top: canvas.height! / 2,
-          cornerSize: 10,
-          hasControls: true,
-          hasBorders: true,
-          name: draggedAsset.name
-        });
-        
-        canvas.add(img);
-        canvas.setActiveObject(img);
-        canvas.renderAll();
-        
-        toast.success(`Added ${draggedAsset.name} to canvas`);
-      })
-      .catch(() => {
-        console.error('Error loading image:', draggedAsset.src);
-        toast.error(`Failed to load ${draggedAsset.name}`);
-      });
-    
-  }, [draggedAsset]);
-
-  const handleMouseDown = (event: any) => {
-    if (activeTool !== 'line' || isDrawing || !fabricCanvasRef.current) return;
-    
-    const canvas = fabricCanvasRef.current;
-    const pointer = canvas.getPointer(event.e);
-    
-    setIsDrawing(true);
-    setStartPoint({ x: pointer.x, y: pointer.y });
-  };
-
-  const handleMouseMove = (event: any) => {
-    if (!isDrawing || !startPoint || !fabricCanvasRef.current) return;
-    
-    const canvas = fabricCanvasRef.current;
-    const pointer = canvas.getPointer(event.e);
-    
-    const objects = canvas.getObjects();
-    const tempLine = objects.find((obj: any) => obj.data?.isTemp);
-    if (tempLine) {
-      canvas.remove(tempLine);
-    }
-    
-    const line = new FabricLine(
-      [startPoint.x, startPoint.y, pointer.x, pointer.y],
-      {
-        stroke: colorMap[activeColor],
-        strokeWidth: 2,
-        selectable: false,
-        evented: false,
-        data: { isTemp: true }
-      }
-    );
-    
-    canvas.add(line);
-    canvas.renderAll();
-  };
-
-  const handleMouseUp = (event: any) => {
-    if (!isDrawing || !startPoint || !fabricCanvasRef.current) return;
-    
-    const canvas = fabricCanvasRef.current;
-    const pointer = canvas.getPointer(event.e);
-    
-    const objects = canvas.getObjects();
-    const tempLine = objects.find((obj: any) => obj.data?.isTemp);
-    if (tempLine) {
-      canvas.remove(tempLine);
-    }
-    
-    const line = new FabricLine(
-      [startPoint.x, startPoint.y, pointer.x, pointer.y],
-      {
-        stroke: colorMap[activeColor],
-        strokeWidth: 2,
-        selectable: true,
-        hasControls: true,
-        hasBorders: true
-      }
-    );
-    
-    canvas.add(line);
-    canvas.renderAll();
-    
-    setIsDrawing(false);
-    setStartPoint(null);
-  };
+  const {
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp
+  } = useCanvasDrawing(fabricCanvasRef.current, activeColor);
 
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
@@ -229,15 +55,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
     };
-  }, [isDrawing, startPoint, activeTool, activeColor]);
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
+  }, [handleMouseDown, handleMouseMove, handleMouseUp]);
 
   const saveCanvas = () => {
     if (!fabricCanvasRef.current) return;
@@ -257,7 +75,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     if (!fabricCanvasRef.current || !selectedObject) return;
     fabricCanvasRef.current.remove(selectedObject);
     fabricCanvasRef.current.renderAll();
-    setSelectedObject(null);
     toast.success("Object deleted");
   };
 
@@ -268,12 +85,19 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     hasSelectedObject: !!selectedObject
   }));
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
   return (
     <div 
       className="flex-1 overflow-hidden bg-gray-50 h-full border border-border"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
-      ref={wrapperRef}
     >
       <div className="w-full h-full flex items-center justify-center">
         <canvas ref={canvasRef} />
