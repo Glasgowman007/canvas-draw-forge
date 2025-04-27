@@ -121,8 +121,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     
     const canvas = fabricCanvasRef.current;
     
-    // Using the global fabric object to avoid TypeScript errors with direct import
-    // @ts-ignore - The fabric object is globally available
+    // Using the fabric Line class that we imported
+    // @ts-ignore - Using dynamic loading for fabric.Image
     fabric.Image.fromURL(draggedAsset.src, (img: any) => {
       // Scale down large images
       if (img.width && img.height) {
@@ -175,9 +175,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       canvas.remove(tempLine);
     }
     
-    // Draw a new temporary line using the global fabric object
-    // @ts-ignore - The fabric object is globally available
-    const line = new fabric.Line(
+    // Create a new Line instance directly
+    const line = new Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
@@ -205,9 +204,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
       canvas.remove(tempLine);
     }
     
-    // Create the final line using the global fabric object
-    // @ts-ignore - The fabric object is globally available
-    const line = new fabric.Line(
+    // Create the final line
+    const line = new Line(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
         stroke: colorMap[activeColor],
