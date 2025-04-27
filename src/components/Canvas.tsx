@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Canvas as FabricCanvas, Object as FabricObject, Image as FabricImage, Line as FabricLine } from 'fabric';
 import { Asset, CanvasObject, LineColor, LinePoint, Tool } from '@/types';
@@ -30,14 +29,12 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   const [startPoint, setStartPoint] = useState<LinePoint | null>(null);
   const [selectedObject, setSelectedObject] = useState<CanvasObject | null>(null);
   
-  // Color mapping
   const colorMap: Record<LineColor, string> = {
     'brown': 'var(--drawing-brown)',
     'black': 'var(--drawing-black)',
     'green': 'var(--drawing-green)',
   };
 
-  // Initialize the Fabric.js canvas
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -52,7 +49,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
 
     fabricCanvasRef.current = fabricCanvas;
 
-    // Handle object selection
     fabricCanvas.on('selection:created', (e) => {
       if (e.selected && e.selected.length > 0) {
         setSelectedObject(e.selected[0]);
@@ -74,7 +70,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     };
   }, []);
 
-  // Handle tool changes
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
     
@@ -115,18 +110,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     canvas.renderAll();
   }, [activeTool]);
 
-  // Handle asset drag and drop
   useEffect(() => {
     if (!fabricCanvasRef.current || !draggedAsset) return;
     
     const canvas = fabricCanvasRef.current;
     const url = draggedAsset.src;
     
-    // Fixed: Updated FabricImage.fromURL usage to match Fabric.js v6 API
-    FabricImage.fromURL(url, {
-      // This is the callback that is executed once the image is loaded
-      onComplete: (img) => {
-        // Scale down large images
+    FabricImage.fromURL(url)
+      .then(img => {
         if (img.width && img.height) {
           const maxSize = 100;
           if (img.width > maxSize || img.height > maxSize) {
@@ -135,7 +126,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
           }
         }
         
-        // Position the image in the center of the canvas
         img.set({
           left: canvas.width! / 2,
           top: canvas.height! / 2,
@@ -150,17 +140,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
         canvas.renderAll();
         
         toast.success(`Added ${draggedAsset.name} to canvas`);
-      },
-      // This is called if there's an error loading the image
-      onError: () => {
+      })
+      .catch(() => {
         console.error('Error loading image:', draggedAsset.src);
         toast.error(`Failed to load ${draggedAsset.name}`);
-      }
-    });
+      });
     
   }, [draggedAsset]);
 
-  // Mouse event handlers for line drawing
   const handleMouseDown = (event: any) => {
     if (activeTool !== 'line' || isDrawing || !fabricCanvasRef.current) return;
     
@@ -177,14 +164,12 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     const canvas = fabricCanvasRef.current;
     const pointer = canvas.getPointer(event.e);
     
-    // If there's an existing temporary line, remove it
     const objects = canvas.getObjects();
     const tempLine = objects.find((obj: any) => obj.data?.isTemp);
     if (tempLine) {
       canvas.remove(tempLine);
     }
     
-    // Create a new line
     const line = new FabricLine(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
@@ -206,14 +191,12 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     const canvas = fabricCanvasRef.current;
     const pointer = canvas.getPointer(event.e);
     
-    // Remove any temporary line
     const objects = canvas.getObjects();
     const tempLine = objects.find((obj: any) => obj.data?.isTemp);
     if (tempLine) {
       canvas.remove(tempLine);
     }
     
-    // Create the final line
     const line = new FabricLine(
       [startPoint.x, startPoint.y, pointer.x, pointer.y],
       {
@@ -232,7 +215,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     setStartPoint(null);
   };
 
-  // Mouse event handlers for canvas zoom
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
     
@@ -249,17 +231,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     };
   }, [isDrawing, startPoint, activeTool, activeColor]);
 
-  // Handle drop events
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    // The actual asset handling is done in the draggedAsset effect
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); // Allow drop
+    e.preventDefault();
   };
 
-  // Public methods for external components
   const saveCanvas = () => {
     if (!fabricCanvasRef.current) return;
     saveCanvasAsJpeg(fabricCanvasRef.current, 'canvas-drawing');
@@ -269,7 +248,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
   const clearCanvas = () => {
     if (!fabricCanvasRef.current) return;
     fabricCanvasRef.current.clear();
-    // Set background color directly since setBackgroundColor isn't available in type definitions
     fabricCanvasRef.current.backgroundColor = '#ffffff';
     fabricCanvasRef.current.renderAll();
     toast.success("Canvas cleared");
@@ -282,8 +260,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(({
     setSelectedObject(null);
     toast.success("Object deleted");
   };
-  
-  // Export public methods
+
   useImperativeHandle(ref, () => ({
     saveCanvas,
     clearCanvas,
